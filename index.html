@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>鮮之源 - 嚴選生鮮食材採購網</title>
+  <meta name="description" content="產地直送生鮮食材：頂級肉品、有機蔬果、海鮮宅配，線上下單低溫配送到府。">
+
+  <!-- ── PWA 設定 ── -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2F855A">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="鮮之源">
+  <link rel="apple-touch-icon" href="icons/icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+  <link rel="icon" href="favicon.ico" sizes="any">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-JQEE2PLNR8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-JQEE2PLNR8');
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+
+    /* 調整為生鮮食材的綠色系 */
+    .bg-cream { background-color: #F8FAFC; }
+    .text-brand { color: #2F855A; }
+    .bg-brand { background-color: #2F855A; }
+    .hover-bg-brand:hover { background-color: #276749; }
+    .border-brand { border-color: #2F855A; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translate(-50%, 20px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
+    .animate-fade-in-up { animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+    /* ── RWD / PWA 補強 ── */
+    /* iOS 瀏海與底部安全區 (standalone 模式) */
+    body { padding-top: env(safe-area-inset-top); }
+    nav { padding-top: env(safe-area-inset-top); }
+    #cartFooter { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+    footer { padding-bottom: calc(3rem + env(safe-area-inset-bottom)); }
+
+    /* 觸控裝置無 hover：加入購物車按鈕改為常駐顯示 */
+    @media (hover: none) {
+      .add-to-cart-btn { opacity: 1 !important; transform: translate(-50%, 0) !important; }
+    }
+
+    /* 手機版側邊選單 */
+    #mobileMenu { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+
+    /* 安裝提示橫幅 */
+    #installBanner { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s; }
+  </style>
+</head>
+<body class="bg-cream text-stone-800 min-h-screen relative overflow-x-hidden">
+
+  <!-- 導覽列 -->
+  <nav class="fixed top-0 w-full bg-white/80 backdrop-blur-md z-40 border-b border-stone-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <button id="mobileMenuBtn" class="sm:hidden text-stone-600 hover:text-stone-900 focus:outline-none" aria-label="開啟選單">
+          <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+        <h1 class="text-2xl font-bold text-brand tracking-wider cursor-pointer">鮮之源食材網</h1>
+      </div>
+      <div class="hidden sm:flex items-center space-x-8 text-sm text-stone-600 font-medium tracking-wide">
+        <a href="#" class="hover:text-brand transition-colors">最新到貨</a>
+        <a href="#" class="hover:text-brand transition-colors">生鮮肉品</a>
+        <a href="#" class="hover:text-brand transition-colors">有機蔬果</a>
+      </div>
+      <div class="flex items-center space-x-6">
+        <button class="text-stone-600 hover:text-brand transition-colors hidden sm:block focus:outline-none">
+          <i data-lucide="search" class="w-5 h-5"></i>
+        </button>
+        <button id="cartBtn" class="relative text-stone-600 hover:text-brand transition-colors flex items-center gap-2 focus:outline-none">
+          <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+          <span class="hidden sm:inline font-medium">購物車</span>
+          <span id="cartBadge" class="hidden absolute -top-2 -right-2 sm:-top-2 sm:right-10 bg-brand text-white text-xs font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 手機版側邊選單 -->
+  <div id="mobileMenuWrap" class="fixed inset-0 z-50 hidden sm:hidden">
+    <div id="mobileMenuOverlay" class="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"></div>
+    <div id="mobileMenu" class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-2xl flex flex-col -translate-x-full" style="padding-top: env(safe-area-inset-top);">
+      <div class="px-6 py-5 border-b border-stone-100 flex items-center justify-between">
+        <h2 class="text-lg font-bold text-brand tracking-wider">鮮之源食材網</h2>
+        <button id="closeMobileMenuBtn" class="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-full transition-colors focus:outline-none" aria-label="關閉選單">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <nav class="flex flex-col p-4 gap-1 text-stone-700 font-medium">
+        <a href="#" class="px-4 py-3.5 rounded-xl hover:bg-stone-50 hover:text-brand transition-colors flex items-center gap-3">
+          <i data-lucide="sparkles" class="w-5 h-5 text-brand"></i> 最新到貨
+        </a>
+        <a href="#" class="px-4 py-3.5 rounded-xl hover:bg-stone-50 hover:text-brand transition-colors flex items-center gap-3">
+          <i data-lucide="beef" class="w-5 h-5 text-brand"></i> 生鮮肉品
+        </a>
+        <a href="#" class="px-4 py-3.5 rounded-xl hover:bg-stone-50 hover:text-brand transition-colors flex items-center gap-3">
+          <i data-lucide="leaf" class="w-5 h-5 text-brand"></i> 有機蔬果
+        </a>
+      </nav>
+      <div class="mt-auto p-6 border-t border-stone-100 text-xs text-stone-400">
+        © 2026 鮮之源 Fresh Source
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA 安裝提示橫幅 -->
+  <div id="installBanner" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-40 bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 flex items-center gap-4 translate-y-32 opacity-0 pointer-events-none" style="margin-bottom: env(safe-area-inset-bottom);">
+    <img src="icons/icon-72x72.png" alt="鮮之源 App 圖示" class="w-12 h-12 rounded-xl shadow-sm" />
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-bold text-stone-800">安裝鮮之源 App</p>
+      <p class="text-xs text-stone-500">加入主畫面，採買更快速</p>
+    </div>
+    <button id="installDismissBtn" class="p-2 text-stone-400 hover:text-stone-600 focus:outline-none" aria-label="關閉">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+    <button id="installBtn" class="bg-brand hover-bg-brand text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors shadow-sm focus:outline-none">安裝</button>
+  </div>
+
+  <!-- 主視覺 -->
+  <section class="pt-28 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div class="relative h-[60vh] min-h-[400px] w-full rounded-2xl overflow-hidden shadow-xl group">
+      <!-- 替換為生鮮蔬菜圖片 -->
+      <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" alt="新鮮蔬菜食材" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+      <div class="absolute bottom-8 left-8 sm:bottom-12 sm:left-12 bg-white/95 backdrop-blur-sm p-6 sm:p-8 rounded-xl max-w-sm shadow-2xl">
+        <h2 class="text-2xl sm:text-3xl font-bold text-stone-800 mb-2">產地直送 鮮採嚴選</h2>
+        <p class="text-stone-500 text-sm sm:text-base mb-6 leading-relaxed">提供最新鮮的當季蔬菜、頂級肉品與海鮮，從產地到餐桌，為您的健康與美味把關。</p>
+        <button class="bg-brand hover-bg-brand text-white px-6 py-3 rounded-full text-sm font-medium transition-colors shadow-md flex items-center gap-2 group/btn">
+          <span>立即選購</span>
+          <i data-lucide="chevron-right" class="w-4 h-4 transition-transform group-hover/btn:translate-x-1"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 商品列表 -->
+  <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div class="flex items-center justify-between mb-10">
+      <h3 class="text-xl font-bold text-stone-800 border-l-4 border-brand pl-4 tracking-wide">本週精選食材</h3>
+    </div>
+    <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12"></div>
+  </section>
+
+  <!-- 頁尾 -->
+  <footer class="bg-white border-t border-stone-200 py-12 text-center text-stone-500 text-sm">
+    <p>© 2026 鮮之源 Fresh Source. All rights reserved.</p>
+  </footer>
+
+  <!-- 購物車側邊欄 -->
+  <div id="cartDrawer" class="fixed inset-0 z-50 overflow-hidden hidden">
+    <div id="cartOverlay" class="absolute inset-0 bg-stone-900/40 backdrop-blur-sm transition-opacity duration-300"></div>
+    <div class="absolute inset-y-0 right-0 max-w-md w-full bg-white shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-full" id="drawerBody">
+      <div class="px-6 py-5 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+        <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+          <i data-lucide="shopping-cart" class="text-brand w-6 h-6"></i>
+          <span>購物車</span>
+          <span id="drawerCount" class="text-sm bg-stone-200 text-stone-700 px-2 py-0.5 rounded-full font-semibold">0</span>
+        </h2>
+        <button id="closeCartBtn" class="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-full transition-colors focus:outline-none">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+      <div id="cartItemsContainer" class="flex-1 overflow-y-auto p-6 flex flex-col gap-6"></div>
+      <div id="cartFooter" class="border-t border-stone-100 p-6 bg-stone-50 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <span class="text-stone-600">總計金額</span>
+          <span id="cartTotalAmount" class="text-2xl font-bold text-brand">NT$ 0</span>
+        </div>
+        <button id="checkoutBtn" class="w-full bg-brand hover-bg-brand text-white py-4 rounded-xl font-bold text-lg transition-colors flex justify-center items-center gap-2 shadow-md">
+          <span>填寫寄送資料</span>
+          <i data-lucide="chevron-right" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 客戶資料 Modal -->
+  <div id="customerModal" class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4 hidden">
+    <div class="bg-white p-6 sm:p-8 rounded-2xl max-w-lg w-full shadow-2xl transform scale-95 opacity-0 transition-all duration-300" id="customerModalBody">
+      <div class="flex justify-between items-center border-b border-stone-100 pb-4 mb-6">
+        <h3 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+          <i data-lucide="clipboard-list" class="text-brand w-6 h-6"></i>
+          <span>填寫訂購與付款資訊</span>
+        </h3>
+        <button id="closeCustomerBtn" class="text-stone-400 hover:text-stone-600 p-1 rounded-full hover:bg-stone-50 transition-colors focus:outline-none">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form id="orderForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1 flex items-center gap-1.5">
+            <i data-lucide="user" class="w-4 h-4 text-stone-400"></i> 訂購人姓名 <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="custName" required placeholder="請輸入收件人姓名"
+            class="w-full px-4 py-2.5 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2F855A]/20 focus:border-brand transition-all text-sm bg-stone-50/50" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1 flex items-center gap-1.5">
+            <i data-lucide="phone" class="w-4 h-4 text-stone-400"></i> 行動電話 <span class="text-red-500">*</span>
+          </label>
+          <input type="tel" id="custPhone" required placeholder="請輸入手機號碼 (例: 0912345678)" pattern="^09[0-9]{8}$"
+            class="w-full px-4 py-2.5 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2F855A]/20 focus:border-brand transition-all text-sm bg-stone-50/50" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1 flex items-center gap-1.5">
+            <i data-lucide="map-pin" class="w-4 h-4 text-stone-400"></i> 配送地址 <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="custAddress" required placeholder="請輸入完整的宅配地址"
+            class="w-full px-4 py-2.5 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2F855A]/20 focus:border-brand transition-all text-sm bg-stone-50/50" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1 flex items-center gap-1.5">
+            <i data-lucide="credit-card" class="w-4 h-4 text-stone-400"></i> 匯款帳號後 5 碼 <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="custAccount" required placeholder="請輸入您轉帳使用的帳號後 5 碼" maxlength="5" pattern="[0-9]{5}"
+            class="w-full px-4 py-2.5 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2F855A]/20 focus:border-brand transition-all text-sm bg-stone-50/50" />
+          <p class="text-stone-400 text-xs mt-1">付款方式為銀行轉帳，請填寫以利對帳核對。</p>
+        </div>
+        <div class="pt-4 border-t border-stone-100 flex gap-3">
+          <button type="button" id="backToCartBtn"
+            class="w-1/3 border border-stone-200 text-stone-600 py-3 rounded-xl font-medium text-sm transition-colors hover:bg-stone-50 focus:outline-none">
+            返回購物車
+          </button>
+          <button type="submit" id="submitOrderBtn"
+            class="w-2/3 bg-brand hover-bg-brand text-white py-3 rounded-xl font-bold text-sm transition-colors flex justify-center items-center gap-2 shadow-md focus:outline-none">
+            <span id="submitBtnText">送出訂單</span>
+            <div id="submitSpinner" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin hidden"></div>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 hidden">
+    <i data-lucide="check-circle-2" class="text-green-400 w-5 h-5"></i>
+    <span id="toastText" class="text-sm font-medium">已處理完畢</span>
+  </div>
+
+  <!-- 結帳成功彈窗 -->
+  <div id="successModal" class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4 hidden">
+    <div class="bg-white p-8 rounded-2xl max-w-sm w-full text-center shadow-2xl transform scale-95 opacity-0 transition-all duration-300" id="modalBody">
+      <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-lucide="check-circle-2" class="text-green-600 w-10 h-10"></i>
+      </div>
+      <h3 class="text-2xl font-bold text-stone-800 mb-2">訂單已成功送出！</h3>
+      <p class="text-stone-500 mb-8 leading-relaxed">
+        感謝您的購買！您的訂購資料已成功寫入資料庫，我們將盡快為您安排低溫生鮮宅配。
+      </p>
+      <button id="modalCloseBtn" class="w-full bg-brand hover-bg-brand text-white py-3 rounded-xl font-medium transition-colors shadow-sm focus:outline-none">
+        繼續採買
+      </button>
+    </div>
+  </div>
+
+  <!-- 錯誤提示 Modal -->
+  <div id="errorModal" class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4 hidden">
+    <div class="bg-white p-8 rounded-2xl max-w-sm w-full text-center shadow-2xl transform scale-95 opacity-0 transition-all duration-300" id="errorModalBody">
+      <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-lucide="alert-circle" class="text-red-500 w-10 h-10"></i>
+      </div>
+      <h3 class="text-2xl font-bold text-stone-800 mb-2">訂單送出失敗</h3>
+      <p id="errorMessage" class="text-stone-500 mb-8 leading-relaxed text-sm">發生未知錯誤，請稍後再試。</p>
+      <button id="errorCloseBtn" class="w-full border border-stone-200 text-stone-600 py-3 rounded-xl font-medium transition-colors hover:bg-stone-50 focus:outline-none">
+        關閉
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       Supabase 與 GA4 主要邏輯
+       ===================================================== -->
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    // ─────────────────────────────────────────────────────
+    //  🔧 Supabase 設定區 (保留原設定)
+    // ─────────────────────────────────────────────────────
+    const SUPABASE_URL  = 'https://fywjqwvxbuobkmwrofvu.supabase.co';
+    const SUPABASE_KEY  = 'sb_publishable_OobRxK7fL8QkGfry08MwEQ_ZxzNekVu';
+    const ORDERS_TABLE  = 'orders'; 
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ─────────────────────────────────────────────────────
+    //  商品資料 (改為生鮮食材)
+    // ─────────────────────────────────────────────────────
+    const PRODUCTS = [
+      { id: 1, name: "頂級日本A5和牛火鍋肉片", description: "產地直送，大理石油花豐富，入口即化", price: 1200, image: "https://images.unsplash.com/photo-1603048297172-c92544798d5e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
+      { id: 2, name: "挪威空運生鮮鮭魚菲力", description: "冷鏈空運來台，富含Omega-3，鮮嫩多汁", price: 850, image: "https://images.unsplash.com/photo-1599084993091-1cb5c0721cc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
+      { id: 3, name: "嚴選產銷履歷有機蔬菜箱", description: "當季採收有機認證，安心健康的家庭首選", price: 699, image: "https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" },
+      { id: 4, name: "牧場直送放牧土雞蛋 30入", description: "友善平飼，蛋黃飽滿香濃，無抗生素殘留", price: 350, image: "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" }
+    ];
+
+    // ─────────────────────────────────────────────────────
+    //  全域狀態
+    // ─────────────────────────────────────────────────────
+    let cart = [];
+
+    // ─────────────────────────────────────────────────────
+    //  GA4 輔助函式
+    // ─────────────────────────────────────────────────────
+    function getGA4Item(item, quantity = 1) {
+      return {
+        item_id: item.id.toString(),
+        item_name: item.name,
+        price: item.price,
+        quantity: quantity
+      };
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  DOM 節點
+    // ─────────────────────────────────────────────────────
+    const productGrid       = document.getElementById('productGrid');
+    const cartBtn           = document.getElementById('cartBtn');
+    const cartBadge         = document.getElementById('cartBadge');
+    const cartDrawer        = document.getElementById('cartDrawer');
+    const cartOverlay       = document.getElementById('cartOverlay');
+    const drawerBody        = document.getElementById('drawerBody');
+    const closeCartBtn      = document.getElementById('closeCartBtn');
+    const cartItemsContainer= document.getElementById('cartItemsContainer');
+    const cartFooter        = document.getElementById('cartFooter');
+    const cartTotalAmount   = document.getElementById('cartTotalAmount');
+    const drawerCount       = document.getElementById('drawerCount');
+    const toast             = document.getElementById('toast');
+    const toastText         = document.getElementById('toastText');
+    const checkoutBtn       = document.getElementById('checkoutBtn');
+    const customerModal     = document.getElementById('customerModal');
+    const customerModalBody = document.getElementById('customerModalBody');
+    const closeCustomerBtn  = document.getElementById('closeCustomerBtn');
+    const backToCartBtn     = document.getElementById('backToCartBtn');
+    const orderForm         = document.getElementById('orderForm');
+    const submitOrderBtn    = document.getElementById('submitOrderBtn');
+    const submitBtnText     = document.getElementById('submitBtnText');
+    const submitSpinner     = document.getElementById('submitSpinner');
+    const successModal      = document.getElementById('successModal');
+    const modalBody         = document.getElementById('modalBody');
+    const modalCloseBtn     = document.getElementById('modalCloseBtn');
+    const errorModal        = document.getElementById('errorModal');
+    const errorModalBody    = document.getElementById('errorModalBody');
+    const errorMessage      = document.getElementById('errorMessage');
+    const errorCloseBtn     = document.getElementById('errorCloseBtn');
+
+    // ─────────────────────────────────────────────────────
+    //  商品渲染與操作 (加上 GA4 view_item 與 add_to_cart)
+    // ─────────────────────────────────────────────────────
+    function renderProducts() {
+      productGrid.innerHTML = PRODUCTS.map(p => `
+        <div class="group flex flex-col h-full">
+          <!-- 點擊圖片觸發 查看商品: view_item -->
+          <div class="relative aspect-square overflow-hidden rounded-xl bg-stone-100 mb-4 shadow-sm group-hover:shadow-md transition-shadow cursor-pointer" onclick="handleViewItem(${p.id})">
+            <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" />
+            <!-- 點擊按鈕觸發 加入購物車: add_to_cart -->
+            <button onclick="event.stopPropagation(); handleAddToCart(${p.id})" class="add-to-cart-btn absolute bottom-4 left-1/2 -translate-x-1/2 w-11/12 bg-white/90 backdrop-blur-md text-brand font-medium py-3 rounded-lg opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:bg-[#2F855A] hover:text-white flex justify-center items-center gap-2 shadow-lg">
+              <i data-lucide="shopping-cart" class="w-4 h-4"></i> 加入購物車
+            </button>
+          </div>
+          <div class="text-center mt-auto flex flex-col items-center">
+            <h4 class="text-base font-bold text-stone-800 mb-1">${p.name}</h4>
+            <p class="text-stone-500 text-xs mb-1.5 px-2">${p.description}</p>
+            <p class="text-brand font-semibold">NT$ ${p.price.toLocaleString()}</p>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // 事件 1: 查看商品: view_item
+    function handleViewItem(productId) {
+      const product = PRODUCTS.find(p => p.id === productId);
+      if (!product) return;
+      
+      gtag('event', 'view_item', {
+        currency: 'TWD',
+        value: product.price,
+        items: [getGA4Item(product, 1)]
+      });
+
+      showToast(`已查看：${product.name}`);
+    }
+
+    // 事件 2: 加入購物車: add_to_cart
+    function handleAddToCart(productId) {
+      const product = PRODUCTS.find(p => p.id === productId);
+      if (!product) return;
+      
+      const existing = cart.find(i => i.id === productId);
+      if (existing) { 
+        existing.quantity += 1; 
+      } else { 
+        cart.push({ ...product, quantity: 1 }); 
+      }
+      
+      updateCartUI();
+
+      // 觸發 GA4 add_to_cart
+      gtag('event', 'add_to_cart', {
+        currency: 'TWD',
+        value: product.price,
+        items: [getGA4Item(product, 1)]
+      });
+
+      showToast(`已將 ${product.name} 加入購物車`);
+    }
+
+    function updateCartUI() {
+      const totalCount  = cart.reduce((a, i) => a + i.quantity, 0);
+      const totalAmount = cart.reduce((a, i) => a + i.price * i.quantity, 0);
+
+      cartBadge.textContent = totalCount;
+      totalCount > 0 ? cartBadge.classList.remove('hidden') : cartBadge.classList.add('hidden');
+      drawerCount.textContent = totalCount;
+
+      if (cart.length === 0) {
+        cartItemsContainer.innerHTML = `
+          <div class="flex flex-col items-center justify-center h-full text-stone-400 gap-4 mt-12">
+            <i data-lucide="shopping-cart" class="w-16 h-16 opacity-20"></i>
+            <p>您的購物車目前是空的</p>
+            <button onclick="toggleDrawer(false)" class="text-brand font-medium border border-brand px-6 py-2 rounded-full mt-2 hover:bg-brand hover:text-white transition-colors focus:outline-none">去逛逛生鮮</button>
+          </div>`;
+        cartFooter.classList.add('hidden');
+      } else {
+        cartItemsContainer.innerHTML = cart.map(item => `
+          <div class="flex gap-4 items-center bg-white border border-stone-100 p-3 rounded-xl shadow-sm">
+            <img src="${item.image}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg" />
+            <div class="flex-1 min-w-0">
+              <h4 class="text-sm font-bold text-stone-800 truncate mb-1">${item.name}</h4>
+              <p class="text-brand font-semibold text-sm mb-3">NT$ ${item.price.toLocaleString()}</p>
+              <div class="flex items-center gap-3 bg-stone-50 rounded-lg w-fit border border-stone-200 p-1">
+                <button onclick="changeQuantity(${item.id}, -1)" class="w-6 h-6 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:bg-stone-200 rounded transition-colors focus:outline-none">
+                  <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                </button>
+                <span class="text-sm font-medium w-6 text-center">${item.quantity}</span>
+                <button onclick="changeQuantity(${item.id}, 1)" class="w-6 h-6 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:bg-stone-200 rounded transition-colors focus:outline-none">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+            <!-- 事件 4 的按鈕 (從購物車移出) -->
+            <button onclick="removeItemFromCart(${item.id})" class="p-2 text-stone-300 hover:text-red-500 transition-colors self-start focus:outline-none" title="移除商品">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>`).join('');
+        cartTotalAmount.textContent = `NT$ ${totalAmount.toLocaleString()}`;
+        cartFooter.classList.remove('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function changeQuantity(id, delta) {
+      const item = cart.find(i => i.id === id);
+      if (item) { const q = item.quantity + delta; if (q > 0) item.quantity = q; }
+      updateCartUI();
+    }
+
+    // 事件 4: 從購物車移出: remove_from_cart
+    function removeItemFromCart(id) {
+      const item = cart.find(i => i.id === id);
+      if (item) {
+        gtag('event', 'remove_from_cart', {
+          currency: 'TWD',
+          value: item.price * item.quantity,
+          items: [getGA4Item(item, item.quantity)]
+        });
+      }
+      cart = cart.filter(i => i.id !== id);
+      updateCartUI();
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  抽屜 & Modal 開關 (加上 GA4 view_cart)
+    // ─────────────────────────────────────────────────────
+    function toggleDrawer(open) {
+      if (open) {
+        cartDrawer.classList.remove('hidden');
+        setTimeout(() => drawerBody.classList.remove('translate-x-full'), 50);
+
+        // 事件 3: 看購物車: view_cart
+        if (cart.length > 0) {
+          const totalAmount = cart.reduce((a, i) => a + i.price * i.quantity, 0);
+          gtag('event', 'view_cart', {
+            currency: 'TWD',
+            value: totalAmount,
+            items: cart.map(i => getGA4Item(i, i.quantity))
+          });
+        }
+      } else {
+        drawerBody.classList.add('translate-x-full');
+        setTimeout(() => cartDrawer.classList.add('hidden'), 300);
+      }
+    }
+
+    function toggleCustomerModal(open) {
+      if (open) {
+        customerModal.classList.remove('hidden');
+        setTimeout(() => { customerModalBody.classList.remove('scale-95', 'opacity-0'); customerModalBody.classList.add('scale-100', 'opacity-100'); }, 50);
+      } else {
+        customerModalBody.classList.remove('scale-100', 'opacity-100');
+        customerModalBody.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => customerModal.classList.add('hidden'), 300);
+      }
+    }
+
+    function showSuccessModal() {
+      successModal.classList.remove('hidden');
+      setTimeout(() => { modalBody.classList.remove('scale-95', 'opacity-0'); modalBody.classList.add('scale-100', 'opacity-100'); }, 50);
+    }
+
+    function hideSuccessModal() {
+      modalBody.classList.remove('scale-100', 'opacity-100');
+      modalBody.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => successModal.classList.add('hidden'), 300);
+    }
+
+    function showErrorModal(msg) {
+      errorMessage.textContent = msg || '發生未知錯誤，請稍後再試。';
+      errorModal.classList.remove('hidden');
+      setTimeout(() => { errorModalBody.classList.remove('scale-95', 'opacity-0'); errorModalBody.classList.add('scale-100', 'opacity-100'); }, 50);
+    }
+
+    function hideErrorModal() {
+      errorModalBody.classList.remove('scale-100', 'opacity-100');
+      errorModalBody.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => errorModal.classList.add('hidden'), 300);
+    }
+
+    // Toast
+    let toastTimeout;
+    function showToast(message) {
+      toastText.textContent = message;
+      toast.classList.remove('hidden');
+      toast.classList.add('animate-fade-in-up');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => { toast.classList.remove('animate-fade-in-up'); toast.classList.add('hidden'); }, 3000);
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  送出訂單 → 寫入 Supabase (加上 GA4 add_payment_info & purchase)
+    // ─────────────────────────────────────────────────────
+    async function handleOrderSubmit(e) {
+      e.preventDefault();
+
+      const name    = document.getElementById('custName').value.trim();
+      const phone   = document.getElementById('custPhone').value.trim();
+      const address = document.getElementById('custAddress').value.trim();
+      const account = document.getElementById('custAccount').value.trim();
+
+      if (!name || !phone || !address || !account) {
+        alert('請確認所有必填欄位皆已完整填寫。');
+        return;
+      }
+
+      // 啟用載入動畫
+      submitBtnText.classList.add('hidden');
+      submitSpinner.classList.remove('hidden');
+      submitOrderBtn.disabled = true;
+
+      const totalAmount = cart.reduce((a, i) => a + i.price * i.quantity, 0);
+
+      // 事件 6: 填寫付款資訊: add_payment_info
+      // 在使用者確認送出表單的當下觸發
+      gtag('event', 'add_payment_info', {
+        currency: 'TWD',
+        value: totalAmount,
+        payment_type: 'bank_transfer',
+        items: cart.map(i => getGA4Item(i, i.quantity))
+      });
+
+      // ── 組裝寫入 Supabase 的資料結構 ──
+      const orderRecord = {
+        customer_name:    name,
+        customer_phone:   phone,
+        customer_address: address,
+        remittance_last5: account,
+        items: cart.map(i => ({
+          product_id: i.id,
+          name:       i.name,
+          price:      i.price,
+          quantity:   i.quantity,
+          subtotal:   i.price * i.quantity
+        })),
+        total_amount: totalAmount,
+        status:       'pending',        // 訂單狀態：pending / confirmed / shipped
+        created_at:   new Date().toISOString()
+      };
+
+      try {
+        const { data, error } = await supabase
+          .from(ORDERS_TABLE)
+          .insert([orderRecord])
+          .select();
+
+        if (error) throw error;
+
+        console.log('✅ 訂單已寫入 Supabase：', data);
+
+        // 事件 7: 完成購買: purchase
+        // 成功取得資料庫回傳後紀錄交易
+        const transactionId = (data && data.length > 0) ? data[0].id : ('T_' + Date.now());
+        gtag('event', 'purchase', {
+          transaction_id: transactionId,
+          value: totalAmount,
+          currency: 'TWD',
+          items: cart.map(i => getGA4Item(i, i.quantity))
+        });
+
+        // 清除狀態
+        cart = [];
+        orderForm.reset();
+        updateCartUI();
+
+        // 關閉 Modal，顯示成功
+        toggleCustomerModal(false);
+        setTimeout(showSuccessModal, 350);
+
+      } catch (err) {
+        console.error('❌ Supabase 寫入失敗：', err);
+        showErrorModal(`資料庫寫入失敗：${err.message}`);
+      } finally {
+        // 恢復按鈕狀態
+        submitBtnText.classList.remove('hidden');
+        submitSpinner.classList.add('hidden');
+        submitOrderBtn.disabled = false;
+      }
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  事件監聽綁定
+    // ─────────────────────────────────────────────────────
+    cartBtn.addEventListener('click',         () => toggleDrawer(true));
+    closeCartBtn.addEventListener('click',    () => toggleDrawer(false));
+    cartOverlay.addEventListener('click',     () => toggleDrawer(false));
+    
+    checkoutBtn.addEventListener('click',     () => { 
+      // 事件 5: 開始結帳: begin_checkout
+      const totalAmount = cart.reduce((a, i) => a + i.price * i.quantity, 0);
+      gtag('event', 'begin_checkout', {
+        currency: 'TWD',
+        value: totalAmount,
+        items: cart.map(i => getGA4Item(i, i.quantity))
+      });
+
+      toggleDrawer(false); 
+      toggleCustomerModal(true); 
+    });
+
+    closeCustomerBtn.addEventListener('click',() => toggleCustomerModal(false));
+    backToCartBtn.addEventListener('click',   () => { toggleCustomerModal(false); toggleDrawer(true); });
+    orderForm.addEventListener('submit',      handleOrderSubmit);
+    modalCloseBtn.addEventListener('click',   hideSuccessModal);
+    errorCloseBtn.addEventListener('click',   hideErrorModal);
+
+    // 綁定至 window 供 HTML inline onclick 使用
+    window.handleViewItem      = handleViewItem;
+    window.handleAddToCart     = handleAddToCart;
+    window.changeQuantity      = changeQuantity;
+    window.removeItemFromCart  = removeItemFromCart;
+    window.toggleDrawer        = toggleDrawer;
+
+    // ─────────────────────────────────────────────────────
+    //  手機版側邊選單
+    // ─────────────────────────────────────────────────────
+    const mobileMenuBtn      = document.getElementById('mobileMenuBtn');
+    const mobileMenuWrap     = document.getElementById('mobileMenuWrap');
+    const mobileMenu         = document.getElementById('mobileMenu');
+    const mobileMenuOverlay  = document.getElementById('mobileMenuOverlay');
+    const closeMobileMenuBtn = document.getElementById('closeMobileMenuBtn');
+
+    function toggleMobileMenu(open) {
+      if (open) {
+        mobileMenuWrap.classList.remove('hidden');
+        setTimeout(() => mobileMenu.classList.remove('-translate-x-full'), 30);
+      } else {
+        mobileMenu.classList.add('-translate-x-full');
+        setTimeout(() => mobileMenuWrap.classList.add('hidden'), 300);
+      }
+    }
+    mobileMenuBtn.addEventListener('click',      () => toggleMobileMenu(true));
+    closeMobileMenuBtn.addEventListener('click', () => toggleMobileMenu(false));
+    mobileMenuOverlay.addEventListener('click',  () => toggleMobileMenu(false));
+
+    // ─────────────────────────────────────────────────────
+    //  PWA：Service Worker 註冊與更新機制
+    // ─────────────────────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then((reg) => {
+            console.log('✅ Service Worker 已註冊，範圍：', reg.scope);
+
+            // 偵測新版本：安裝完成後提示使用者更新
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  showToast('已有新版本，重新整理即可更新');
+                }
+              });
+            });
+          })
+          .catch((err) => console.warn('❌ Service Worker 註冊失敗：', err));
+      });
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  PWA：自訂安裝提示 (beforeinstallprompt)
+    // ─────────────────────────────────────────────────────
+    const installBanner     = document.getElementById('installBanner');
+    const installBtn        = document.getElementById('installBtn');
+    const installDismissBtn = document.getElementById('installDismissBtn');
+    let deferredPrompt = null;
+
+    function showInstallBanner() {
+      installBanner.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+    }
+    function hideInstallBanner() {
+      installBanner.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      // 曾關閉過提示則本次工作階段不再顯示
+      if (!sessionStorage.getItem('installDismissed')) {
+        setTimeout(showInstallBanner, 2500);
+      }
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('安裝選擇結果：', outcome);
+      deferredPrompt = null;
+      hideInstallBanner();
+    });
+
+    installDismissBtn.addEventListener('click', () => {
+      sessionStorage.setItem('installDismissed', '1');
+      hideInstallBanner();
+    });
+
+    window.addEventListener('appinstalled', () => {
+      hideInstallBanner();
+      showToast('鮮之源已成功加入主畫面');
+    });
+
+    // ─────────────────────────────────────────────────────
+    //  初始化 (支援 manifest 捷徑 ?action=cart)
+    // ─────────────────────────────────────────────────────
+    window.onload = () => {
+      renderProducts();
+      updateCartUI();
+
+      const params = new URLSearchParams(location.search);
+      if (params.get('action') === 'cart') {
+        setTimeout(() => toggleDrawer(true), 300);
+      }
+    };
+  </script>
+</body>
+</html>
